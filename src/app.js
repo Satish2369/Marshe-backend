@@ -11,6 +11,7 @@ dotenv.config();
 
 const app = express();
 
+console.log(process.env.NODE_ENV);
 const corsOptions = {
   origin:
     process.env.NODE_ENV === "development"
@@ -20,6 +21,8 @@ const corsOptions = {
         ,
   credentials: true,
 };
+
+console.log(process.env.NODE_ENV);
 
 app.use(cors(corsOptions));
 app.use(express.json());
