@@ -14,7 +14,7 @@ const cors = require("cors");
 //express.json() converts the json object to a  js object which can now be readable
 
 const corsOptions = {
-    origin: "https://marshe.vercel.app/",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
    
 };
