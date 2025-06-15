@@ -7,8 +7,8 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "dev": "NODE_ENV=development node src/app.js",
-  "start": "NODE_ENV=production node src/app.js"
+    "dev": " nodemon src/app.js",
+  "start": " nodemon src/app.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

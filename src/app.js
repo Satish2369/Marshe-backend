@@ -1,6 +1,5 @@
 console.log(" Backend project started");
 
-const path = require("path");
 const dotenv = require("dotenv");
 const express = require("express");
 const connectDB = require("./config/database");
@@ -8,20 +7,17 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
 
-const env = process.env.NODE_ENV || "development";
-
-
-dotenv.config({
-  path: path.resolve(__dirname, `../.env.${env}`)
-});
-
-
-
+dotenv.config();
 
 const app = express();
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,
+  origin:
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : 
+         "https://marshe.vercel.app"
+        ,
   credentials: true,
 };
 
