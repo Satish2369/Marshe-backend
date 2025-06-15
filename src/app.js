@@ -12,7 +12,7 @@ const env = process.env.NODE_ENV || "development";
 
 
 dotenv.config({
-  path: path.resolve(__dirname, `../.env.${env}`),
+  path: path.resolve(__dirname, `../.env.${env}`)
 });
 
 
