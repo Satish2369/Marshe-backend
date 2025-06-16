@@ -17,7 +17,7 @@ const corsOptions = {
     process.env.NODE_ENV === "development"
       ? "http://localhost:3000"
       : 
-         "https://marshe.vercel.app"
+         "https://improvised-marshee-ui.vercel.app"
         ,
   credentials: true,
 };
