@@ -33,6 +33,7 @@ const authRouter = require("./routes/auth");
 app.use("/", authRouter);
 
 
+
 connectDB()
   .then(() => {
     console.log(" MongoDB connection established");

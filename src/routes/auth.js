@@ -6,7 +6,7 @@ const {validateSignUpData} = require("../utils/validation")
 const authRouter = express.Router();
 const {userAuth} = require("../../middlewares/auth");
 
-authRouter.post('/signup', async (req,res)=>{
+authRouter.post('/signup/email', async (req,res)=>{
 
     try {
  //validation of the data
@@ -51,7 +51,7 @@ catch (err) {
 
 })
 
-authRouter.post("/login",async(req,res)=>{
+authRouter.post("/login/email",async(req,res)=>{
    
     try{
      const{password,emailId} = req.body;
@@ -103,9 +103,114 @@ authRouter.post("/login",async(req,res)=>{
  
  })
 
+ 
+
+ authRouter.post("/login/otp", async (req, res) => {
+  try {
+    const { uid, phone } = req.body;
+
+    if (!uid || !phone) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid Firebase UID or phone number",
+      });
+    }
+
+    const user = await User.findOne({ uid, phone });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "User not found",
+      });
+    }
+
+     const token = await user.getJwt();
+
+    // Set HTTP-only cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+  
+    return res.status(200).json({
+      success: true,
+      message: "OTP login successful",
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email || null,
+        phone: user.phone,
+        uid: user.uid,
+      },
+    });
+  } catch (error) {
+    console.error("OTP Login Error:", error.message);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: error.message,
+    });
+  }
+});
 
 
+authRouter.post("/signup/otp", async (req, res) => {
+  try {
+    const { name, phone, uid } = req.body;
 
+    if (!name || !phone || !uid) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, phone, and UID are required",
+      });
+    }
+
+    
+    const existingUser = await User.findOne({ uid, phone });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists with this phone/uid",
+      });
+    }
+
+    
+    const user = new User({ name, phone, uid });
+    await user.save();
+
+   
+    const token = user.getJWT();
+
+   
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    
+    return res.status(200).json({
+      success: true,
+      message: "User signed up successfully",
+      data: {
+        uid,
+        name,
+        phone,
+      },
+    });
+  } catch (error) {
+    console.error("OTP Signup Error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+});
 
 
 

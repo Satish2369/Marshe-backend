@@ -1,65 +1,67 @@
-
-
 const mongoose = require('mongoose');
-const validator = require('validator')
-const bcrypt = require("bcrypt"); 
+const validator = require('validator');
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    minlength: 3,
+    maxlength: 45,
+  },
+  uid: {
+    type: String,
+    required: true,
+    unique: true
+  },
 
+  email: {
+    type: String,
+    sparse: true,
+    lowercase: true,
+    trim: true,
+    validate: {
+      validator: (val) => !val || validator.isEmail(val),
+      message: "Invalid email",
+    },
+  },
 
-         name:{
-            type:String,
-            required:true,
-            minlength:3,
-            maxlength:45
-         },
-         
-         emailId:{
-            type:String,
-            required:true,
-            unique:true,
-            lowercase:true,
-            trim:true,
-            validate(value){
-               if(!validator.isEmail(value)){
-                  throw new Error("Invalid email")
-               }
-            }
-         },
-         password:{
-            type:String,
-            required:true,
-            // validate(value){
-            //    if(!validator.isStrongPassword(value)){
-            //       throw new Error("passsword is weak")
-            //    }
-            // }
-         }
-        
+  phone: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
 
+  password: {
+    type: String,
+    minlength: 6,
+  },
 
+ 
 
+  isPhoneVerified: { type: Boolean, default: false },
+  isEmailVerified: { type: Boolean, default: false },
+}, { timestamps: true });
 
-},{timestamps:true});
+// 🔐 Hash password before save
+userSchema.pre("save", async function (next) {
+  if (this.isModified("password") && this.password) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
+});
 
-//never use a arrow function with this
-userSchema.methods.getJWT = async function (){
-  const user = this;
-   const token = await jwt.sign({_id:this._id},process.env.JWT_SECRET,{expiresIn:"1d"});
+// 🔑 Generate JWT
+userSchema.methods.getJWT = function () {
+  return jwt.sign({ _id: this._id }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
+};
 
-    return token;
-}
+// 🔐 Validate password
+userSchema.methods.validatePassword = async function (passwordByUser) {
+  return await bcrypt.compare(passwordByUser, this.password);
+};
 
-
-
-userSchema.methods.validatePassword= async function(passwordByUser){
-    const user = this;
-    const passwordHash = this.password;
-     const isPasswordValid =await bcrypt.compare(passwordByUser,passwordHash);
-    return isPasswordValid;
-}
-
-
-
-const UserModel= mongoose.model("User",userSchema)
+const UserModel = mongoose.model("User", userSchema);
 module.exports = UserModel;
