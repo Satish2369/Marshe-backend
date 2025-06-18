@@ -116,7 +116,7 @@ authRouter.post("/login/email",async(req,res)=>{
       });
     }
 
-    const user = await User.findOne({ uid, phone });
+    const user = await User.findOne({  phone });
 
     if (!user) {
       return res.status(404).json({
