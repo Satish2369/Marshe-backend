@@ -107,7 +107,10 @@ authRouter.post("/login/email",async(req,res)=>{
 
  authRouter.post("/login/otp", async (req, res) => {
   try {
+     
     const { uid, phone } = req.body;
+
+     console.log(uid,phone);
 
     if (!uid || !phone) {
       return res.status(401).json({
@@ -116,7 +119,8 @@ authRouter.post("/login/email",async(req,res)=>{
       });
     }
 
-    const user = await User.findOne({  phone });
+    const user = await User.findOne({ phone });
+     console.log(user);
 
     if (!user) {
       return res.status(404).json({
