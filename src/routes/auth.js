@@ -129,7 +129,7 @@ authRouter.post("/login/email",async(req,res)=>{
       });
     }
 
-     const token = await user.getJwt();
+     const token = await user.getJWT();
 
     // Set HTTP-only cookie
     res.cookie("token", token, {
