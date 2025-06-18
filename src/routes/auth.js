@@ -1,5 +1,4 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
 const validator = require("validator");
 const User = require("../models/user");
 const { validateSignUpData } = require("../utils/validation");
@@ -23,16 +22,13 @@ authRouter.post('/signup/email', async (req, res) => {
         message: "User with this email already exists",
       });
     }
-
-    // Hash the password
-    const passwordHash = await bcrypt.hash(password, 10);
     const emailUid = `email_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
     // Create and save the user
     const user = new User({
       name,
       email,
-      password: passwordHash,
+      password,
       uid: emailUid,
     });
 
@@ -57,7 +53,7 @@ authRouter.post('/signup/email', async (req, res) => {
   }
 });
 
-// ✅ Email Login Route
+
 authRouter.post("/login/email", async (req, res) => {
   try {
     const { password, email } = req.body;
@@ -67,11 +63,14 @@ authRouter.post("/login/email", async (req, res) => {
     }
 
     const user = await User.findOne({ email });
+  
     if (!user) throw new Error("Invalid credentials");
+
 
     const isPasswordValid = await user.validatePassword(password);
     if (!isPasswordValid) throw new Error("Invalid credentials");
 
+    
     const token = await user.getJWT();
 
     res.cookie("token", token, {
@@ -94,7 +93,9 @@ authRouter.post("/login/email", async (req, res) => {
   }
 });
 
-// ✅ OTP Login Route
+
+
+
 authRouter.post("/login/otp", async (req, res) => {
   try {
     const { uid, phone } = req.body;

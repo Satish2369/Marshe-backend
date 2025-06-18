@@ -37,10 +37,7 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
   },
 
- 
 
-  isPhoneVerified: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // 🔐 Hash password before save
