@@ -1,123 +1,103 @@
 const express = require("express");
-const bcrypt = require("bcrypt"); 
-const User = require("../models/user");
+const bcrypt = require("bcrypt");
 const validator = require("validator");
-const {validateSignUpData} = require("../utils/validation")
+const User = require("../models/user");
+const { validateSignUpData } = require("../utils/validation");
+const { userAuth } = require("../../middlewares/auth");
+
 const authRouter = express.Router();
-const {userAuth} = require("../../middlewares/auth");
 
-authRouter.post('/signup/email', async (req,res)=>{
+// ✅ Email Signup Route
+authRouter.post('/signup/email', async (req, res) => {
+  try {
+    // Validate the incoming data
+    validateSignUpData(req);
 
-    try {
- //validation of the data
-   validateSignUpData(req);
+    const { password, name, email } = req.body;
 
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User with this email already exists",
+      });
+    }
 
- //Encrypt the password
-   
-  const {password,name,emailId}=req.body;
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 10);
+    const emailUid = `email_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
-  const existingUser = await User.findOne({ emailId });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "User with this email already exists"
-        });
-      }
- const passwordHash = await bcrypt.hash(password,10);
-//    console.log(passwordHash);
-
-
-const emailUid = `email_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-
-// creating a new instance of the new user model
+    // Create and save the user
     const user = new User({
-        name,emailId,password:passwordHash,uid:emailUid
+      name,
+      email,
+      password: passwordHash,
+      uid: emailUid,
     });
 
+    const savedUser = await user.save();
+    const token = await savedUser.getJWT();
 
-   const savedUser =   await user.save();
+    // Send token as cookie
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000), // 8 hours
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: process.env.NODE_ENV === "production",
+    });
 
-   const token = await savedUser.getJWT();
- 
- 
-     //Add the token to cookie and send the respons e to the server       
-     res.cookie("token",token,{
-        expires:new Date(Date.now() + 8*3600000)
-     });  
+    res.status(201).json({
+      message: "User saved successfully",
+      data: savedUser,
+    });
 
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
+});
 
-
-    res.json({message : "user saved successfully",
-        data:savedUser
-    })
-}
-catch (err) {
-    res.status(400).send("Error: " + err.message)
-}
-
-})
-
-authRouter.post("/login/email",async(req,res)=>{
-   
-    try{
-     const{password,emailId} = req.body;
-     
-     if(!validator.isEmail(emailId)){
-            throw new Error("Invalid emailId");
-     }
- 
-     const user = await User.findOne({emailId:emailId});
- 
-     if(!user){
-         throw new Error("Invalid credentials");
-     }
- 
-     const isPasswordValid = await user.validatePassword(password);
- 
- 
-    if(isPasswordValid){
-    
-     //Create a JWt Token
- 
-    const token = await user.getJWT();
- 
- 
-     //Add the token to cookie and send the respons e to the server       
-     res.cookie("token",token,{
-        expires:new Date(Date.now() + 8*3600000)
-     });  
- 
-      res.status(200).json({
-        message:"Login successful",
-        data:{
-            name:user.name,
-            emailId:user.emailId
-        }});
-
-
-
-    }
-    else{
-     throw new Error("Invalid credentials")
-    } 
- 
-    }
-    catch(err){
- 
-     res.status(400).send("ERROR :" + err.message)
-    }
- 
- })
-
- 
-
- authRouter.post("/login/otp", async (req, res) => {
+// ✅ Email Login Route
+authRouter.post("/login/email", async (req, res) => {
   try {
-     
-    const { uid, phone } = req.body;
+    const { password, email } = req.body;
 
-     console.log(uid,phone);
+    if (!validator.isEmail(email)) {
+      throw new Error("Invalid email");
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("Invalid credentials");
+
+    const isPasswordValid = await user.validatePassword(password);
+    if (!isPasswordValid) throw new Error("Invalid credentials");
+
+    const token = await user.getJWT();
+
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      data: {
+        name: user.name,
+        email: user.email,
+      },
+    });
+
+  } catch (err) {
+    res.status(400).send("ERROR: " + err.message);
+  }
+});
+
+// ✅ OTP Login Route
+authRouter.post("/login/otp", async (req, res) => {
+  try {
+    const { uid, phone } = req.body;
 
     if (!uid || !phone) {
       return res.status(401).json({
@@ -127,8 +107,6 @@ authRouter.post("/login/email",async(req,res)=>{
     }
 
     const user = await User.findOne({ phone });
-     console.log(user);
-
     if (!user) {
       return res.status(404).json({
         error: "Not Found",
@@ -136,9 +114,8 @@ authRouter.post("/login/email",async(req,res)=>{
       });
     }
 
-     const token = await user.getJWT();
+    const token = await user.getJWT();
 
-    // Set HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -146,7 +123,6 @@ authRouter.post("/login/email",async(req,res)=>{
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-  
     return res.status(200).json({
       success: true,
       message: "OTP login successful",
@@ -158,6 +134,7 @@ authRouter.post("/login/email",async(req,res)=>{
         uid: user.uid,
       },
     });
+
   } catch (error) {
     console.error("OTP Login Error:", error.message);
     return res.status(500).json({
@@ -167,7 +144,7 @@ authRouter.post("/login/email",async(req,res)=>{
   }
 });
 
-
+// ✅ OTP Signup Route
 authRouter.post("/signup/otp", async (req, res) => {
   try {
     const { name, phone, uid } = req.body;
@@ -179,7 +156,6 @@ authRouter.post("/signup/otp", async (req, res) => {
       });
     }
 
-    
     const existingUser = await User.findOne({ uid, phone });
     if (existingUser) {
       return res.status(409).json({
@@ -188,14 +164,11 @@ authRouter.post("/signup/otp", async (req, res) => {
       });
     }
 
-    
     const user = new User({ name, phone, uid });
     await user.save();
 
-   
-    const token = user.getJWT();
+    const token = await user.getJWT();
 
-   
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -203,7 +176,6 @@ authRouter.post("/signup/otp", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    
     return res.status(200).json({
       success: true,
       message: "User signed up successfully",
@@ -213,6 +185,7 @@ authRouter.post("/signup/otp", async (req, res) => {
         phone,
       },
     });
+
   } catch (error) {
     console.error("OTP Signup Error:", error.message);
     return res.status(500).json({
@@ -223,39 +196,29 @@ authRouter.post("/signup/otp", async (req, res) => {
   }
 });
 
-
-
-
-  authRouter.post("/logout", (req, res) => {
-  res.clearCookie("token"); 
+// ✅ Logout Route
+authRouter.post("/logout", (req, res) => {
+  res.clearCookie("token");
   res.send("Logout successfully");
 });
 
-   
-
-
-authRouter.get("/profile",userAuth,async(req,res)=>{
-
-   
+// ✅ Profile Route (Protected)
+authRouter.get("/profile", userAuth, async (req, res) => {
   try {
-    const user = req.user; 
-    const { name, emailId } = user;
+    const user = req.user;
+    const { name, email } = user;
 
     res.status(200).json({
       message: "User profile fetched successfully",
-      data: {
-        name,
-        email: emailId,
-        
-      },
+      data: { name, email },
     });
+
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch profile", error: error.message });
+    res.status(500).json({
+      message: "Failed to fetch profile",
+      error: error.message,
+    });
   }
 });
-
-
-
-
 
 module.exports = authRouter;
