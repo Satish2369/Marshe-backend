@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   },
   uid: {
     type: String,
+    sparse: true
      
   },
 
