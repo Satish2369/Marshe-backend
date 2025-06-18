@@ -17,15 +17,22 @@ authRouter.post('/signup/email', async (req,res)=>{
    
   const {password,name,emailId}=req.body;
 
-
+  const existingUser = await User.findOne({ emailId });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "User with this email already exists"
+        });
+      }
  const passwordHash = await bcrypt.hash(password,10);
 //    console.log(passwordHash);
 
 
+const emailUid = `email_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
 // creating a new instance of the new user model
     const user = new User({
-        name,emailId,password:passwordHash
+        name,emailId,password:passwordHash,uid:emailUid
     });
 
 
