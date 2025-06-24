@@ -6,7 +6,7 @@ const { userAuth } = require("../../middlewares/auth");
 
 const authRouter = express.Router();
 
-// ✅ Email Signup Route
+
 authRouter.post('/signup/email', async (req, res) => {
   try {
     // Validate the incoming data
@@ -14,7 +14,7 @@ authRouter.post('/signup/email', async (req, res) => {
 
     const { password, name, email } = req.body;
 
-    // Check if user already exists
+   
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -24,7 +24,7 @@ authRouter.post('/signup/email', async (req, res) => {
     }
     const emailUid = `email_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
-    // Create and save the user
+  
     const user = new User({
       name,
       email,
@@ -35,9 +35,9 @@ authRouter.post('/signup/email', async (req, res) => {
     const savedUser = await user.save();
     const token = await savedUser.getJWT();
 
-    // Send token as cookie
+    
     res.cookie("token", token, {
-      expires: new Date(Date.now() + 8 * 3600000), // 8 hours
+      expires: new Date(Date.now() + 8 * 3600000), 
       httpOnly: true,
       sameSite: "Lax",
       secure: process.env.NODE_ENV === "production",
@@ -94,8 +94,6 @@ authRouter.post("/login/email", async (req, res) => {
 });
 
 
-
-
 authRouter.post("/login/otp", async (req, res) => {
   try {
     const { uid, phone } = req.body;
@@ -145,7 +143,7 @@ authRouter.post("/login/otp", async (req, res) => {
   }
 });
 
-// ✅ OTP Signup Route
+
 authRouter.post("/signup/otp", async (req, res) => {
   try {
     const { name, phone, uid } = req.body;
@@ -197,13 +195,13 @@ authRouter.post("/signup/otp", async (req, res) => {
   }
 });
 
-// ✅ Logout Route
+
 authRouter.post("/logout", (req, res) => {
   res.clearCookie("token");
   res.send("Logout successfully");
 });
 
-// ✅ Profile Route (Protected)
+
 authRouter.get("/profile", userAuth, async (req, res) => {
   try {
     const user = req.user;
